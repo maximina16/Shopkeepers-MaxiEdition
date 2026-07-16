@@ -36,6 +36,7 @@ import com.nisovin.shopkeepers.currency.Currencies;
 import com.nisovin.shopkeepers.currency.Currency;
 import com.nisovin.shopkeepers.debug.Debug;
 import com.nisovin.shopkeepers.debug.DebugOptions;
+import com.nisovin.shopkeepers.dependencies.customitems.CustomItemsMatcher;
 import com.nisovin.shopkeepers.lang.Messages;
 import com.nisovin.shopkeepers.ui.lib.UIState;
 import com.nisovin.shopkeepers.ui.lib.View;
@@ -764,8 +765,8 @@ public class TradingView extends View {
 		int requiredItem2Amount = ItemUtils.getItemStackAmount(requiredItem2);
 		return (offeredItem1Amount >= requiredItem1Amount
 				&& offeredItem2Amount >= requiredItem2Amount
-				&& Compat.getProvider().matches(offeredItem1, requiredItem1)
-				&& Compat.getProvider().matches(offeredItem2, requiredItem2));
+				&& CustomItemsMatcher.matches(offeredItem1, requiredItem1)
+				&& CustomItemsMatcher.matches(offeredItem2, requiredItem2));
 	}
 
 	protected final void debugPreventedTrade(String reason) {

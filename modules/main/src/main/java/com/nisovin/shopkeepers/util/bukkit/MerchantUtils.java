@@ -11,6 +11,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import com.nisovin.shopkeepers.api.internal.util.Unsafe;
 import com.nisovin.shopkeepers.api.shopkeeper.TradingRecipe;
 import com.nisovin.shopkeepers.api.util.UnmodifiableItemStack;
+import com.nisovin.shopkeepers.dependencies.customitems.CustomItemsRefresher;
 import com.nisovin.shopkeepers.shopkeeper.SKTradingRecipe;
 import com.nisovin.shopkeepers.shopkeeper.TradingRecipeDraft;
 import com.nisovin.shopkeepers.util.inventory.ItemUtils;
@@ -103,6 +104,14 @@ public final class MerchantUtils {
 			UnmodifiableItemStack buyItem1,
 			@Nullable UnmodifiableItemStack buyItem2
 	) {
+		assert !ItemUtils.isEmpty(resultItem) && !ItemUtils.isEmpty(buyItem1);
+		// Live-refresh MMOItems / MaxiMinions / MaxiUpgrade so shop lore tracks plugin configs
+		// without requiring admins to re-save every trade after an item edit.
+		resultItem = CustomItemsRefresher.refresh(resultItem);
+		buyItem1 = CustomItemsRefresher.refresh(buyItem1);
+		if (buyItem2 != null) {
+			buyItem2 = CustomItemsRefresher.refresh(buyItem2);
+		}
 		assert !ItemUtils.isEmpty(resultItem) && !ItemUtils.isEmpty(buyItem1);
 		// The items are already copied on various occasions (addIngredient, getIngredients, when
 		// converting to a Minecraft recipe, etc.), so we do not need to copy them ourselves here.

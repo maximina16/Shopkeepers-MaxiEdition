@@ -36,6 +36,7 @@ import com.nisovin.shopkeepers.debug.Debug;
 import com.nisovin.shopkeepers.debug.DebugOptions;
 import com.nisovin.shopkeepers.debug.events.EventDebugger;
 import com.nisovin.shopkeepers.debug.trades.TradingCountListener;
+import com.nisovin.shopkeepers.dependencies.customitems.CustomItemsUpdateListener;
 import com.nisovin.shopkeepers.dependencies.worldguard.WorldGuardDependency;
 import com.nisovin.shopkeepers.input.chat.ChatInput;
 import com.nisovin.shopkeepers.input.interaction.InteractionInput;
@@ -385,6 +386,7 @@ public class SKShopkeepersPlugin extends JavaPlugin implements InternalShopkeepe
 		// Register events:
 		PluginManager pm = Bukkit.getPluginManager();
 		pm.registerEvents(new PlayerJoinQuitListener(this), this);
+		pm.registerEvents(new CustomItemsUpdateListener(), this);
 		new TradingCountListener(this).onEnable();
 
 		// DEFAULT SHOP OBJECT TYPES
