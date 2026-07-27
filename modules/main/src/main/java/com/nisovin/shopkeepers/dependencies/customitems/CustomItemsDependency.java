@@ -13,6 +13,8 @@ public final class CustomItemsDependency {
 	public static final String MAXI_MINIONS = "MaxiMinions";
 	/** Plugin.yml name of MaxiUpgrade. */
 	public static final String MAXI_UPGRADE = "maxiUpgrade";
+	public static final String NEXO = "Nexo";
+	public static final String CUSTOM_CROPS = "CustomCrops";
 
 	public static boolean isMmoItemsEnabled() {
 		return Bukkit.getPluginManager().isPluginEnabled(MMOITEMS);
@@ -26,8 +28,17 @@ public final class CustomItemsDependency {
 		return Bukkit.getPluginManager().isPluginEnabled(MAXI_UPGRADE);
 	}
 
+	public static boolean isNexoEnabled() {
+		return Bukkit.getPluginManager().isPluginEnabled(NEXO);
+	}
+
+	public static boolean isCustomCropsEnabled() {
+		return Bukkit.getPluginManager().isPluginEnabled(CUSTOM_CROPS);
+	}
+
 	public static boolean isAnyEnabled() {
-		return isMmoItemsEnabled() || isMaxiMinionsEnabled() || isMaxiUpgradeEnabled();
+		return isMmoItemsEnabled() || isMaxiMinionsEnabled() || isMaxiUpgradeEnabled()
+				|| isNexoEnabled();
 	}
 
 	public static @Nullable Plugin getMmoItems() {

@@ -18,6 +18,9 @@ import com.nisovin.shopkeepers.util.logging.Log;
  * Rebuilds known custom items from their plugin definitions (MMOItems type+id, MaxiMinions
  * type+level, MaxiUpgrade lore rebuild). Soft-deps via reflection so Shopkeepers stays loadable
  * without those plugins.
+ * <p>
+ * Trade costs with a Nexo id also strip lore so CustomCrops water-state lore does not block
+ * Minecraft's merchant ingredient matching.
  */
 public final class CustomItemsRefresher {
 
@@ -26,6 +29,7 @@ public final class CustomItemsRefresher {
 	private static final String TAG_ITEM_ID = "MMOITEMS_ITEM_ID";
 	private static final String TAG_ITEM_TYPE = "MMOITEMS_ITEM_TYPE";
 	private static final String TAG_UPGRADE_LEVEL = "MMOITEMS_UPGRADE_LEVEL";
+	private static final NamespacedKey NEXO_ID_KEY = new NamespacedKey("nexo", "id");
 
 	private static volatile boolean mmoItemsWarned = false;
 	private static volatile boolean minionsWarned = false;
@@ -46,6 +50,17 @@ public final class CustomItemsRefresher {
 	}
 
 	/**
+	 * Refresh + strip volatile lore for merchant buy ingredients.
+	 * Minecraft only requires the offered item to contain the recipe's components; clearing lore
+	 * on the recipe side lets CustomCrops rewrite player-item lore without blocking the trade.
+	 */
+	public static UnmodifiableItemStack prepareTradeCost(UnmodifiableItemStack item) {
+		if (ItemUtils.isEmpty(item)) return item;
+		ItemStack prepared = prepareTradeCost(item.copy());
+		return UnmodifiableItemStack.ofNonNull(prepared);
+	}
+
+	/**
 	 * Mutates or replaces the given stack. Returns the item to use (may be a new instance).
 	 */
 	public static ItemStack refresh(ItemStack item) {
@@ -60,6 +75,33 @@ public final class CustomItemsRefresher {
 		// Non-MMOItems: still stamp vanilla rarity lore if MaxiItems API is present.
 		tryStampVanillaTier(item);
 		return item;
+	}
+
+	public static ItemStack prepareTradeCost(ItemStack item) {
+		ItemStack refreshed = refresh(item);
+		return stripVolatileTradeLore(refreshed);
+	}
+
+	/**
+	 * Clears lore when the item has a stable Nexo id (CustomCrops watering cans, etc.).
+	 */
+	private static ItemStack stripVolatileTradeLore(ItemStack item) {
+		if (ItemUtils.isEmpty(item)) return item;
+		if (readNexoId(item) == null) return item;
+
+		ItemStack copy = item.clone();
+		ItemMeta meta = copy.getItemMeta();
+		if (meta == null) return item;
+		meta.setLore(null);
+		copy.setItemMeta(meta);
+		return copy;
+	}
+
+	static @Nullable String readNexoId(ItemStack item) {
+		ItemMeta meta = item.getItemMeta();
+		if (meta == null) return null;
+		String id = meta.getPersistentDataContainer().get(NEXO_ID_KEY, PersistentDataType.STRING);
+		return (id == null || id.isEmpty()) ? null : id;
 	}
 
 	private static @Nullable ItemStack tryRefreshMaxiMinion(ItemStack item) {
