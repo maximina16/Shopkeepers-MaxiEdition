@@ -66,6 +66,7 @@ source installJDK.sh 21
 #    exit 0
 #fi
 
+buildSpigotIfMissing 1.21.4 R0.1 remapped
 buildSpigotIfMissing 1.21.5 R0.1 remapped
 buildSpigotIfMissing 1.21.6 R0.1 remapped
 # Note: 1.21.7 was replaced by 1.21.8 and can no longer be built. But the server is identical to 1.21.8.

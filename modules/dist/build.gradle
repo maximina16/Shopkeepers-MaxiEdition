@@ -4,20 +4,16 @@ plugins {
 	id 'com.gradleup.shadow'
 }
 
+// Leaf/Paper hedefi: Spigot BuildTools (craftbukkit remapped) gerektirmeyen paperweight modülleri.
+// Spigot-only NMS modülleri için scripts/installSpigotDependencies.sh gerekir.
 def nmsModules = [
-	':shopkeepers-v1_21_R5',
+	':shopkeepers-v1_21_R4_paper',
 	':shopkeepers-v1_21_R5_paper',
-	':shopkeepers-v1_21_R6',
 	':shopkeepers-v1_21_R6_paper',
-	':shopkeepers-v1_21_R7',
 	':shopkeepers-v1_21_R7_paper',
-	':shopkeepers-v1_21_R8',
 	':shopkeepers-v1_21_R8_paper',
-	':shopkeepers-v1_21_R9',
 	':shopkeepers-v1_21_R9_paper',
-	':shopkeepers-v26_1_R1',
 	':shopkeepers-v26_1_R1_paper',
-	':shopkeepers-v26_2_R1',
 	':shopkeepers-v26_2_R1_paper'
 ]
 

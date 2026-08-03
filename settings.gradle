@@ -4,6 +4,7 @@ def subprojects = [
 	'external-annotations',
 	'api',
 	'main',
+	'v1_21_R4_paper',
 	'v1_21_R5',
 	'v1_21_R5_paper',
 	'v1_21_R6',
