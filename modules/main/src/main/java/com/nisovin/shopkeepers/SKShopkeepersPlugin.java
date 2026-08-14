@@ -26,6 +26,7 @@ import com.nisovin.shopkeepers.api.shopkeeper.ShopType;
 import com.nisovin.shopkeepers.commands.Commands;
 import com.nisovin.shopkeepers.compat.Compat;
 import com.nisovin.shopkeepers.compat.MC_1_21_11;
+import com.nisovin.shopkeepers.compat.MC_1_21_5;
 import com.nisovin.shopkeepers.compat.MC_1_21_9;
 import com.nisovin.shopkeepers.compat.ServerAssumptionsTest;
 import com.nisovin.shopkeepers.config.Settings;
@@ -197,6 +198,14 @@ public class SKShopkeepersPlugin extends JavaPlugin implements InternalShopkeepe
 			if (SKIP_PRELOADING_CLASSES.contains(className)) {
 				return false;
 			}
+			// Chicken/Cow/Pig shops hard-depend on 1.21.5+ Variant APIs:
+			if (!MC_1_21_5.isAvailable() && (
+					className.endsWith(".ChickenShop")
+							|| className.endsWith(".CowShop")
+							|| className.endsWith(".PigShop")
+			)) {
+				return false;
+			}
 			return true;
 		}, this.getLogger());
 		if (success) {
@@ -330,6 +339,7 @@ public class SKShopkeepersPlugin extends JavaPlugin implements InternalShopkeepe
 
 		// Check for and initialize version dependent utilities:
 		// Example: MC_1_20_6.init();
+		MC_1_21_5.init();
 		MC_1_21_9.init();
 		MC_1_21_11.init();
 

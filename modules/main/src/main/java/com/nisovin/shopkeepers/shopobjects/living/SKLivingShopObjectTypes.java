@@ -19,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import com.nisovin.shopkeepers.api.internal.util.Unsafe;
 import com.nisovin.shopkeepers.api.shopobjects.living.LivingShopObjectTypes;
+import com.nisovin.shopkeepers.compat.MC_1_21_5;
 import com.nisovin.shopkeepers.config.Settings.DerivedSettings;
 import com.nisovin.shopkeepers.shopobjects.entity.base.BaseEntityShops;
 import com.nisovin.shopkeepers.shopobjects.living.types.AbstractHorseShop;
@@ -291,20 +292,26 @@ public final class SKLivingShopObjectTypes implements LivingShopObjectTypes {
 			);
 			break;
 		case PIG:
-			objectType = new SKLivingShopObjectType<>(
-					context,
-					entityType,
-					PigShop.class,
-					PigShop::new
-			);
+			// PigShop requires Pig.Variant (MC 1.21.5+). Fall back to BabyableShop on 1.21.4.
+			if (MC_1_21_5.isAvailable()) {
+				objectType = new SKLivingShopObjectType<>(
+						context,
+						entityType,
+						PigShop.class,
+						PigShop::new
+				);
+			}
 			break;
 		case CHICKEN:
-			objectType = new SKLivingShopObjectType<>(
-					context,
-					entityType,
-					ChickenShop.class,
-					ChickenShop::new
-			);
+			// ChickenShop requires Chicken.Variant (MC 1.21.5+). Fall back to BabyableShop on 1.21.4.
+			if (MC_1_21_5.isAvailable()) {
+				objectType = new SKLivingShopObjectType<>(
+						context,
+						entityType,
+						ChickenShop.class,
+						ChickenShop::new
+				);
+			}
 			break;
 		case CREEPER:
 			objectType = new SKLivingShopObjectType<>(
@@ -419,12 +426,15 @@ public final class SKLivingShopObjectTypes implements LivingShopObjectTypes {
 			);
 			break;
 		case COW:
-			objectType = new SKLivingShopObjectType<>(
-					context,
-					entityType,
-					CowShop.class,
-					CowShop::new
-			);
+			// CowShop requires Cow.Variant (MC 1.21.5+). Fall back to BabyableShop on 1.21.4.
+			if (MC_1_21_5.isAvailable()) {
+				objectType = new SKLivingShopObjectType<>(
+						context,
+						entityType,
+						CowShop.class,
+						CowShop::new
+				);
+			}
 			break;
 		case MOOSHROOM:
 			objectType = new SKLivingShopObjectType<>(
