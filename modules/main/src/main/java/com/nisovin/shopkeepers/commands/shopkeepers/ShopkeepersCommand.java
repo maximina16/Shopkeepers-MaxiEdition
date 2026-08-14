@@ -88,6 +88,7 @@ public class ShopkeepersCommand extends BaseCommand {
 		childCommands.register(new CommandTeleport());
 		childCommands.register(new CommandTransfer());
 		childCommands.register(new CommandSetTradePerm());
+		childCommands.register(new CommandSeasons());
 		childCommands.register(new CommandSetTradedCommand());
 		childCommands.register(new CommandSetForHire());
 		childCommands.register(new CommandSnapshot(confirmations));

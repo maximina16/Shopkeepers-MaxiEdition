@@ -157,6 +157,7 @@ public abstract class AbstractShopkeeper implements Shopkeeper {
 	private @Nullable ChunkCoords lastChunkCoords = null;
 	private boolean open = true;
 	private String name = ""; // Not null, can be empty
+	private String seasons = ""; // Empty = always visible; "WINTER" or "WINTER,SPRING"
 
 	private final List<SKShopkeeperSnapshot> snapshots = new ArrayList<>();
 	private final List<? extends SKShopkeeperSnapshot> snapshotsView = Collections.unmodifiableList(snapshots);
@@ -464,6 +465,7 @@ public abstract class AbstractShopkeeper implements Shopkeeper {
 		// Note: If the shop is forced open, this will mark the shopkeeper as dirty.
 		this._setOpen(shopkeeperData.get(OPEN));
 		this._setName(shopkeeperData.get(NAME));
+		this.seasons = shopkeeperData.get(SEASONS);
 
 		// Optional shop object data:
 		ShopObjectData shopObjectData = shopkeeperData.getOrNullIfMissing(SHOP_OBJECT_DATA);
@@ -554,6 +556,7 @@ public abstract class AbstractShopkeeper implements Shopkeeper {
 		shopkeeperData.set(SHOP_TYPE, this.getType());
 		shopkeeperData.set(OPEN, open);
 		shopkeeperData.set(NAME, name);
+		shopkeeperData.set(SEASONS, seasons);
 
 		// Shop object:
 		ShopObjectData shopObjectData = ShopObjectData.ofNonNull(DataContainer.create());
@@ -1342,6 +1345,42 @@ public abstract class AbstractShopkeeper implements Shopkeeper {
 			.useDefaultIfMissing()
 			.defaultValue("")
 			.build();
+
+	public static final Property<String> SEASONS = new BasicProperty<String>()
+			.dataAccessor(new DataKeyAccessor<>("seasons", StringSerializers.SCALAR)
+					.emptyDataPredicate(EmptyDataPredicates.EMPTY_STRING)
+			)
+			.useDefaultIfMissing()
+			.defaultValue("")
+			.build();
+
+	/**
+	 * Empty = visible in every season. Otherwise a comma-separated list of
+	 * {@code SPRING}/{@code SUMMER}/{@code FALL}/{@code WINTER}.
+	 */
+	public String getSeasons() {
+		return seasons;
+	}
+
+	public void setSeasons(@Nullable String newSeasons) {
+		String normalized = normalizeSeasons(newSeasons);
+		if (normalized.equals(this.seasons)) {
+			return;
+		}
+		this.seasons = normalized;
+		this.markDirty();
+	}
+
+	private static String normalizeSeasons(@Nullable String raw) {
+		if (raw == null) {
+			return "";
+		}
+		String trimmed = raw.trim();
+		if (trimmed.isEmpty() || trimmed.equals("-") || trimmed.equalsIgnoreCase("all")) {
+			return "";
+		}
+		return trimmed.replace(';', ',').replace(' ', ',').toUpperCase(java.util.Locale.ROOT);
+	}
 
 	@Override
 	public final String getName() {

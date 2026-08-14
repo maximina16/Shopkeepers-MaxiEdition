@@ -204,6 +204,10 @@ public class ShopkeeperChunkActivator {
 
 		if (shopkeeper.isActive()) return; // Already active
 
+		if (!com.nisovin.shopkeepers.season.SeasonVisibility.isVisible(shopkeeper)) {
+			return;
+		}
+
 		// Mark the shopkeeper as active:
 		shopkeeper.setActive(true);
 
@@ -215,6 +219,31 @@ public class ShopkeeperChunkActivator {
 
 		// If necessary, spawn the shopkeeper:
 		shopkeeperSpawner.spawnShopkeeperImmediately(shopkeeper);
+	}
+
+	/**
+	 * Spawn or despawn shops whose {@code seasons} list no longer matches the global season.
+	 */
+	public void refreshSeasonVisibility() {
+		for (AbstractShopkeeper shopkeeper : shopkeeperRegistry.getAllShopkeepers()) {
+			if (shopkeeper.isVirtual()) {
+				continue;
+			}
+			ChunkCoords chunkCoords = shopkeeper.getLastChunkCoords();
+			if (chunkCoords == null) {
+				continue;
+			}
+			ChunkData chunkData = this.getChunkData(chunkCoords);
+			if (chunkData == null || !chunkData.isActive()) {
+				continue;
+			}
+			boolean visible = com.nisovin.shopkeepers.season.SeasonVisibility.isVisible(shopkeeper);
+			if (visible) {
+				this.activateShopkeeper(shopkeeper);
+			} else if (shopkeeper.isActive()) {
+				this.deactivateShopkeeper(shopkeeper);
+			}
+		}
 	}
 
 	// Also called by SKShopkeeperRegistry when the shopkeeper is about to be removed.

@@ -457,6 +457,7 @@ public class SKShopkeepersPlugin extends JavaPlugin implements InternalShopkeepe
 
 		// Activate (spawn) shopkeepers in loaded chunks of all loaded worlds:
 		shopkeeperRegistry.getChunkActivator().activateShopkeepersInAllWorlds();
+		com.nisovin.shopkeepers.season.SeasonVisibility.register(this);
 
 		// Player shops:
 		playerShops.onEnable();
