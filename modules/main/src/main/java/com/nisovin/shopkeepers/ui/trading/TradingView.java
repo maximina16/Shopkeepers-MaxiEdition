@@ -79,7 +79,8 @@ public class TradingView extends View {
 		Player player = this.getPlayer();
 		Shopkeeper shopkeeper = this.getShopkeeperNonNull();
 		String title = this.getInventoryTitle();
-		List<? extends TradingRecipe> recipes = shopkeeper.getTradingRecipes(player);
+		List<? extends TradingRecipe> recipes = com.nisovin.shopkeepers.season.SeasonVisibility
+				.filterRecipes(shopkeeper.getTradingRecipes(player));
 		if (recipes.isEmpty()) {
 			// Unexpected: Already checked by the view provider.
 			this.debugNotOpeningUI(player, "Shopkeeper has no offers.");
@@ -161,7 +162,8 @@ public class TradingView extends View {
 		List<MerchantRecipe> oldMerchantRecipes = merchant.getRecipes();
 
 		Shopkeeper shopkeeper = this.getShopkeeperNonNull();
-		List<? extends TradingRecipe> recipes = shopkeeper.getTradingRecipes(player);
+		List<? extends TradingRecipe> recipes = com.nisovin.shopkeepers.season.SeasonVisibility
+				.filterRecipes(shopkeeper.getTradingRecipes(player));
 		List<MerchantRecipe> newMerchantRecipes = this.createMerchantRecipes(recipes);
 		if (MerchantUtils.MERCHANT_RECIPES_IGNORE_USES_EXCEPT_BLOCKED.equals(
 				oldMerchantRecipes,

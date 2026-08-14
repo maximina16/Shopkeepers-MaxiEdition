@@ -93,6 +93,15 @@ public class TradingViewProvider extends AbstractShopkeeperViewProvider {
 			return false;
 		}
 
+		if (com.nisovin.shopkeepers.season.SeasonVisibility
+				.filterRecipes(shopkeeper.getTradingRecipes(player)).isEmpty()) {
+			if (!silent) {
+				this.debugNotOpeningUI(player, "No offers this season.");
+				TextUtils.sendMessage(player, Messages.cannotTradeNoOffers);
+			}
+			return false;
+		}
+
 		return true;
 	}
 

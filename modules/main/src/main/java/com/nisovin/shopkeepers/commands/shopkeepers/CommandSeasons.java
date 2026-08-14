@@ -2,29 +2,24 @@ package com.nisovin.shopkeepers.commands.shopkeepers;
 
 import java.util.Arrays;
 
-import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
-import com.nisovin.shopkeepers.SKShopkeepersPlugin;
 import com.nisovin.shopkeepers.api.ShopkeepersPlugin;
-import com.nisovin.shopkeepers.api.ui.DefaultUITypes;
-import com.nisovin.shopkeepers.commands.arguments.ShopkeeperArgument;
-import com.nisovin.shopkeepers.commands.arguments.ShopkeeperFilter;
-import com.nisovin.shopkeepers.commands.arguments.TargetShopkeeperFallback;
-import com.nisovin.shopkeepers.commands.lib.Command;
 import com.nisovin.shopkeepers.commands.lib.CommandException;
 import com.nisovin.shopkeepers.commands.lib.CommandInput;
 import com.nisovin.shopkeepers.commands.lib.arguments.FirstOfArgument;
 import com.nisovin.shopkeepers.commands.lib.arguments.LiteralArgument;
 import com.nisovin.shopkeepers.commands.lib.arguments.StringArgument;
+import com.nisovin.shopkeepers.commands.lib.commands.PlayerCommand;
 import com.nisovin.shopkeepers.commands.lib.context.CommandContextView;
-import com.nisovin.shopkeepers.commands.util.ShopkeeperArgumentUtils.TargetShopkeeperFilter;
-import com.nisovin.shopkeepers.shopkeeper.AbstractShopkeeper;
+import com.nisovin.shopkeepers.season.SeasonVisibility;
 import com.nisovin.shopkeepers.text.Text;
 import com.nisovin.shopkeepers.util.bukkit.TextUtils;
+import com.nisovin.shopkeepers.util.inventory.ItemUtils;
 
-class CommandSeasons extends Command {
+class CommandSeasons extends PlayerCommand {
 
-	private static final String ARGUMENT_SHOPKEEPER = "shopkeeper";
 	private static final String ARGUMENT_NEW_SEASONS = "seasons";
 	private static final String ARGUMENT_REMOVE = "-";
 	private static final String ARGUMENT_QUERY = "?";
@@ -33,59 +28,56 @@ class CommandSeasons extends Command {
 		super("seasons");
 
 		this.setPermission(ShopkeepersPlugin.ADMIN_PERMISSION);
-		this.setDescription(Text.parse("Sets which seasons this shop is visible in."));
-
-		this.addArgument(new TargetShopkeeperFallback(
-				new ShopkeeperArgument(ARGUMENT_SHOPKEEPER,
-						ShopkeeperFilter.ADMIN
-								.and(ShopkeeperFilter.withAccess(DefaultUITypes.EDITOR()))),
-				TargetShopkeeperFilter.ADMIN
+		this.setDescription(Text.parse(
+				"Tags the held shop item so it only appears in those seasons."
 		));
+
 		this.addArgument(new FirstOfArgument("seasonsArg", Arrays.asList(
 				new LiteralArgument(ARGUMENT_QUERY)
 						.orDefaultValue(ARGUMENT_QUERY),
 				new LiteralArgument(ARGUMENT_REMOVE),
-				new StringArgument(ARGUMENT_NEW_SEASONS)
+				new StringArgument(ARGUMENT_NEW_SEASONS, true)
 		), true, true));
 	}
 
 	@Override
 	protected void execute(CommandInput input, CommandContextView context) throws CommandException {
-		CommandSender sender = input.getSender();
-		AbstractShopkeeper shopkeeper = context.get(ARGUMENT_SHOPKEEPER);
-		if (!shopkeeper.canEdit(sender, false)) {
+		Player player = (Player) input.getSender();
+		ItemStack item = player.getInventory().getItemInMainHand();
+		if (ItemUtils.isEmpty(item)) {
+			TextUtils.sendMessage(player, Text.parse(
+					"Hold the shop result item, then run /shopkeeper seasons WINTER"
+			));
 			return;
 		}
 
 		String newSeasons = context.getOrNull(ARGUMENT_NEW_SEASONS);
 		boolean remove = context.has(ARGUMENT_REMOVE);
-		String current = shopkeeper.getSeasons();
-		if (current.isEmpty()) {
+		String current = SeasonVisibility.readSeasons(item);
+		if (current == null || current.isEmpty()) {
 			current = "all";
 		}
 
 		if (remove) {
-			shopkeeper.setSeasons("");
-			TextUtils.sendMessage(sender, Text.parse("Shop seasons cleared (visible always)."));
+			SeasonVisibility.writeSeasons(item, "");
+			player.getInventory().setItemInMainHand(item);
+			TextUtils.sendMessage(player, Text.parse(
+					"Item season tag cleared. This trade shows in every season."
+			));
 		} else if (newSeasons != null) {
-			shopkeeper.setSeasons(newSeasons);
-			String stored = shopkeeper.getSeasons();
-			if (stored.isEmpty()) {
+			SeasonVisibility.writeSeasons(item, newSeasons);
+			player.getInventory().setItemInMainHand(item);
+			String stored = SeasonVisibility.readSeasons(item);
+			if (stored == null || stored.isEmpty()) {
 				stored = "all";
 			}
-			TextUtils.sendMessage(sender, Text.parse("Shop seasons set to {seasons}."),
-					"seasons", stored
-			);
+			TextUtils.sendMessage(player, Text.parse(
+					"Item only appears in shop during: {seasons}. Put it in the villager as the result."
+			), "seasons", stored);
 		} else {
-			TextUtils.sendMessage(sender, Text.parse("Shop seasons: {seasons}."),
+			TextUtils.sendMessage(player, Text.parse("Item seasons: {seasons}."),
 					"seasons", current
 			);
-			return;
 		}
-
-		shopkeeper.save();
-		SKShopkeepersPlugin.getInstance().getShopkeeperRegistry()
-				.getChunkActivator()
-				.refreshSeasonVisibility();
 	}
 }
