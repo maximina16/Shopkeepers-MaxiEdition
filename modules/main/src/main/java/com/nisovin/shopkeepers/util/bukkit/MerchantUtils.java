@@ -107,11 +107,12 @@ public final class MerchantUtils {
 		assert !ItemUtils.isEmpty(resultItem) && !ItemUtils.isEmpty(buyItem1);
 		// Live-refresh MMOItems / MaxiMinions / MaxiUpgrade so shop lore tracks plugin configs
 		// without requiring admins to re-save every trade after an item edit.
-		// Buy costs: strip Nexo lore and MaxiItems rarity so farm produce still matches.
+		// Costs stamp the same MaxiItems rarity players hold, so Paper's exact custom_data
+		// match on merchant ingredients still succeeds.
 		resultItem = CustomItemsRefresher.refresh(resultItem);
-		buyItem1 = CustomItemsRefresher.prepareTradeCost(buyItem1);
+		buyItem1 = CustomItemsRefresher.refresh(buyItem1);
 		if (buyItem2 != null) {
-			buyItem2 = CustomItemsRefresher.prepareTradeCost(buyItem2);
+			buyItem2 = CustomItemsRefresher.refresh(buyItem2);
 		}
 		assert !ItemUtils.isEmpty(resultItem) && !ItemUtils.isEmpty(buyItem1);
 		// The items are already copied on various occasions (addIngredient, getIngredients, when

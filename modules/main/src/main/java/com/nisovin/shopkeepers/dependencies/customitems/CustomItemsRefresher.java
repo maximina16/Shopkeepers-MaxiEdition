@@ -19,8 +19,9 @@ import com.nisovin.shopkeepers.util.logging.Log;
  * type+level, MaxiUpgrade lore rebuild). Soft-deps via reflection so Shopkeepers stays loadable
  * without those plugins.
  * <p>
- * Trade costs strip Nexo lore and MaxiItems rarity (lore + {@code mmoitems:vanilla_tier}) so
- * CustomCrops / farm produce still match Minecraft merchant ingredients.
+ * Merchant ingredients and results stamp MaxiItems rarity ({@code mmoitems:vanilla_tier} + lore).
+ * Paper matches {@code minecraft:custom_data} exactly: stripping rarity from the recipe while
+ * players hold stamped farm produce (Nexo id + vanilla_tier) makes the trade slot stay empty.
  */
 public final class CustomItemsRefresher {
 
@@ -30,7 +31,6 @@ public final class CustomItemsRefresher {
 	private static final String TAG_ITEM_TYPE = "MMOITEMS_ITEM_TYPE";
 	private static final String TAG_UPGRADE_LEVEL = "MMOITEMS_UPGRADE_LEVEL";
 	private static final NamespacedKey NEXO_ID_KEY = new NamespacedKey("nexo", "id");
-	private static final NamespacedKey VANILLA_TIER_KEY = new NamespacedKey("mmoitems", "vanilla_tier");
 
 	private static volatile boolean mmoItemsWarned = false;
 	private static volatile boolean minionsWarned = false;
@@ -51,17 +51,6 @@ public final class CustomItemsRefresher {
 	}
 
 	/**
-	 * Refresh identity, then strip volatile lore and MaxiItems rarity from merchant buy
-	 * ingredients. Minecraft requires the offered item to contain the recipe's components;
-	 * rarity NBT on the recipe side blocks farm produce that players actually hold.
-	 */
-	public static UnmodifiableItemStack prepareTradeCost(UnmodifiableItemStack item) {
-		if (ItemUtils.isEmpty(item)) return item;
-		ItemStack prepared = prepareTradeCost(item.copy());
-		return UnmodifiableItemStack.ofNonNull(prepared);
-	}
-
-	/**
 	 * Mutates or replaces the given stack. Returns the item to use (may be a new instance).
 	 */
 	public static ItemStack refresh(ItemStack item) {
@@ -76,75 +65,6 @@ public final class CustomItemsRefresher {
 		// Non-MMOItems: still stamp vanilla rarity lore if MaxiItems API is present.
 		tryStampVanillaTier(item);
 		return item;
-	}
-
-	public static ItemStack prepareTradeCost(ItemStack item) {
-		ItemStack refreshed = refreshIdentity(item);
-		return stripVolatileTradeCostData(refreshed);
-	}
-
-	/**
-	 * Same as {@link #refresh(ItemStack)} but does not stamp MaxiItems rarity onto the cost.
-	 */
-	private static ItemStack refreshIdentity(ItemStack item) {
-		if (ItemUtils.isEmpty(item)) return item;
-
-		ItemStack minion = tryRefreshMaxiMinion(item);
-		if (minion != null) return minion;
-
-		ItemStack mmo = tryRefreshMmoItem(item);
-		if (mmo != null) return mmo;
-
-		return item;
-	}
-
-	/**
-	 * Drops MaxiItems rarity and Nexo/CustomCrops lore from the recipe ingredient.
-	 */
-	private static ItemStack stripVolatileTradeCostData(ItemStack item) {
-		if (ItemUtils.isEmpty(item)) return item;
-
-		ItemStack copy = item.clone();
-		boolean changed = tryMaxiItemsStrip(copy);
-		boolean nexo = readNexoId(copy) != null;
-		boolean hadVanillaTier = hasVanillaTier(copy);
-		if (!nexo && !hadVanillaTier && !changed) return item;
-
-		ItemMeta meta = copy.getItemMeta();
-		if (meta == null) return changed ? copy : item;
-		if (hadVanillaTier) {
-			meta.getPersistentDataContainer().remove(VANILLA_TIER_KEY);
-			changed = true;
-		}
-		if (nexo || hadVanillaTier) {
-			meta.setLore(null);
-			changed = true;
-		}
-		if (changed) {
-			copy.setItemMeta(meta);
-			return copy;
-		}
-		return item;
-	}
-
-	private static boolean hasVanillaTier(ItemStack item) {
-		ItemMeta meta = item.getItemMeta();
-		if (meta == null) return false;
-		return meta.getPersistentDataContainer().has(VANILLA_TIER_KEY, PersistentDataType.STRING);
-	}
-
-	private static boolean tryMaxiItemsStrip(ItemStack item) {
-		try {
-			Class<?> api = Class.forName("net.Indyuce.mmoitems.api.VanillaTierAPI");
-			Object result = api.getMethod("strip", ItemStack.class).invoke(null, item);
-			return result instanceof Boolean && (Boolean) result;
-		} catch (ClassNotFoundException ignored) {
-			return false;
-		} catch (NoSuchMethodException ignored) {
-			return false;
-		} catch (Throwable ignored) {
-			return false;
-		}
 	}
 
 	static @Nullable String readNexoId(ItemStack item) {
