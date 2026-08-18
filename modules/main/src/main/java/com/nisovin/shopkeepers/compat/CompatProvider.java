@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MainHand;
+import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.view.builder.InventoryViewBuilder;
 import org.bukkit.profile.PlayerProfile;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -135,6 +136,19 @@ public interface CompatProvider {
 	// selected index can crash the client. It's left to the caller to ensure that the number of
 	// recipes does not get reduced, for example by inserting dummy entries.
 	public void updateTrades(Player player);
+
+	/**
+	 * Loosens vanilla merchant {@code ItemCost} predicates after Bukkit recipes were applied.
+	 * <p>
+	 * Paper matches {@code custom_name} / lore exactly. Adventure can append an invisible empty
+	 * extra to one copy of an MMOItems stack and not the other, which leaves the result slot empty
+	 * even when {@code MMOITEMS_ITEM_ID} matches. Display of the cost item is unchanged.
+	 *
+	 * @param merchant
+	 *            the Bukkit merchant whose NMS offers should be adjusted, not <code>null</code>
+	 */
+	public default void prepareMerchantOffers(Merchant merchant) {
+	}
 
 	public ItemStackMetaTag getItemStackMetaTag(@ReadOnly @Nullable ItemStack itemStack);
 

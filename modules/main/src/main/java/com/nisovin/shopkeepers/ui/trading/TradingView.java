@@ -123,6 +123,7 @@ public class TradingView extends View {
 		List<MerchantRecipe> merchantRecipes = this.createMerchantRecipes(recipes);
 		// Set merchant's recipes:
 		merchant.setRecipes(merchantRecipes);
+		Compat.getProvider().prepareMerchantOffers(merchant);
 	}
 
 	protected List<MerchantRecipe> createMerchantRecipes(List<? extends TradingRecipe> recipes) {
@@ -182,6 +183,7 @@ public class TradingView extends View {
 
 		// Set merchant's recipes:
 		merchant.setRecipes(newMerchantRecipes);
+		Compat.getProvider().prepareMerchantOffers(merchant);
 
 		// Update recipes for the client:
 		Compat.getProvider().updateTrades(player);
