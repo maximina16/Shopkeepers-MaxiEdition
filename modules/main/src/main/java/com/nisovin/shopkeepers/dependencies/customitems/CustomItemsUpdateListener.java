@@ -20,7 +20,7 @@ public final class CustomItemsUpdateListener implements Listener {
 		if (!CustomItemsDependency.isAnyEnabled()) return;
 
 		UnmodifiableItemStack original = event.getItem();
-		ItemStack refreshed = CustomItemsRefresher.refresh(original.copy());
+		ItemStack refreshed = CustomItemsRefresher.rebuildFromDefinition(original.copy());
 		if (ItemUtils.isEmpty(refreshed)) return;
 		if (refreshed.isSimilar(original.copy())) return;
 

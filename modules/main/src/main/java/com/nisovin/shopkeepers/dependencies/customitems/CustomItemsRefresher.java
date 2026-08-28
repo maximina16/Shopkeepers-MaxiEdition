@@ -15,13 +15,14 @@ import com.nisovin.shopkeepers.util.inventory.ItemUtils;
 import com.nisovin.shopkeepers.util.logging.Log;
 
 /**
- * Rebuilds known custom items from their plugin definitions (MMOItems type+id, MaxiMinions
- * type+level, MaxiUpgrade lore rebuild). Soft-deps via reflection so Shopkeepers stays loadable
+ * Shop trade display helpers. Soft-deps via reflection so Shopkeepers stays loadable
  * without those plugins.
  * <p>
- * Merchant ingredients and results stamp MaxiItems rarity ({@code mmoitems:vanilla_tier} + lore).
- * Paper matches {@code minecraft:custom_data} exactly: stripping rarity from the recipe while
- * players hold stamped farm produce (Nexo id + vanilla_tier) makes the trade slot stay empty.
+ * Opening a merchant must never call {@code MMOItems.getItem(type, id)}. That rebuilds a
+ * brand-new stack from the template and will turn a netherite hoe that leaked
+ * {@code MATERIAL:NETHERITE_UPGRADE} into a smithing template. Recipe open only stamps
+ * MaxiItems rarity on the existing stack so Paper custom_data matching still works.
+ * Full template rebuild is reserved for {@code /shopkeeper updateItems}.
  */
 public final class CustomItemsRefresher {
 
@@ -51,9 +52,22 @@ public final class CustomItemsRefresher {
 	}
 
 	/**
-	 * Mutates or replaces the given stack. Returns the item to use (may be a new instance).
+	 * Merchant-open path: never regenerate MMOItems from type+id. Stamp rarity only.
 	 */
 	public static ItemStack refresh(ItemStack item) {
+		if (ItemUtils.isEmpty(item)) return item;
+
+		ItemStack minion = tryRefreshMaxiMinion(item);
+		if (minion != null) return minion;
+
+		tryStampVanillaTier(item);
+		return item;
+	}
+
+	/**
+	 * Explicit {@code /shopkeeper updateItems} only. Regenerates from plugin definitions.
+	 */
+	public static ItemStack rebuildFromDefinition(ItemStack item) {
 		if (ItemUtils.isEmpty(item)) return item;
 
 		ItemStack minion = tryRefreshMaxiMinion(item);
@@ -62,7 +76,6 @@ public final class CustomItemsRefresher {
 		ItemStack mmo = tryRefreshMmoItem(item);
 		if (mmo != null) return mmo;
 
-		// Non-MMOItems: still stamp vanilla rarity lore if MaxiItems API is present.
 		tryStampVanillaTier(item);
 		return item;
 	}

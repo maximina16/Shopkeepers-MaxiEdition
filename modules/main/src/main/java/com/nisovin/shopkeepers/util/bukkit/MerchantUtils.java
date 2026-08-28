@@ -105,10 +105,8 @@ public final class MerchantUtils {
 			@Nullable UnmodifiableItemStack buyItem2
 	) {
 		assert !ItemUtils.isEmpty(resultItem) && !ItemUtils.isEmpty(buyItem1);
-		// Live-refresh MMOItems / MaxiMinions / MaxiUpgrade so shop lore tracks plugin configs
-		// without requiring admins to re-save every trade after an item edit.
-		// Costs stamp the same MaxiItems rarity players hold, so Paper's exact custom_data
-		// match on merchant ingredients still succeeds.
+		// Stamp rarity on the saved stacks. Do not rebuild MMOItems from type+id here —
+		// that runs on every villager open and replaces unique tools with a fresh template.
 		resultItem = CustomItemsRefresher.refresh(resultItem);
 		buyItem1 = CustomItemsRefresher.refresh(buyItem1);
 		if (buyItem2 != null) {
