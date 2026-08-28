@@ -118,7 +118,7 @@ public final class CustomItemsMatcher {
 
 		if (provType == null || provId == null) return false;
 
-
+		if (provided.getType() != required.getType()) return false;
 
 		return reqType.equalsIgnoreCase(provType) && reqId.equalsIgnoreCase(provId);
 

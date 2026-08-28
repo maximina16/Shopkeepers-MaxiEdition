@@ -145,6 +145,12 @@ public final class CustomItemsRefresher {
 			Method getItem = mmoItemsClass.getMethod("getItem", String.class, String.class);
 			ItemStack fresh = (ItemStack) getItem.invoke(mmoPlugin, typeId, itemId);
 			if (ItemUtils.isEmpty(fresh)) return null;
+			// /demirci netherite-template merge can leave MATERIAL:NETHERITE_UPGRADE
+			// on a live hoe. Regenerating from that id would replace the tool with
+			// a smithing template. Keep the original when vanilla types diverge.
+			if (item.getType() != fresh.getType()) {
+				return null;
+			}
 			fresh.setAmount(Math.max(1, amount));
 
 			ItemStack upgraded = tryMaxiUpgradeRebuild(fresh, upgradeLevel);
