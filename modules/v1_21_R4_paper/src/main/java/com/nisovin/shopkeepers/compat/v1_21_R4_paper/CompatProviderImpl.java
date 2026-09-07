@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import org.bukkit.Keyed;
 import org.bukkit.Material;
@@ -30,7 +29,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.MerchantInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.view.builder.InventoryViewBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -54,7 +52,6 @@ import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentPredicate;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -66,9 +63,6 @@ import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.trading.ItemCost;
-import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 
 public final class CompatProviderImpl implements CompatProvider {
@@ -104,16 +98,10 @@ public final class CompatProviderImpl implements CompatProvider {
 	}
 
 	private final Field craftItemStackHandleField;
-	private final Field merchantOfferCostAField;
-	private final Field merchantOfferCostBField;
 
 	public CompatProviderImpl() throws Exception {
 		craftItemStackHandleField = CraftItemStack.class.getDeclaredField("handle");
 		craftItemStackHandleField.setAccessible(true);
-		merchantOfferCostAField = MerchantOffer.class.getDeclaredField("baseCostA");
-		merchantOfferCostAField.setAccessible(true);
-		merchantOfferCostBField = MerchantOffer.class.getDeclaredField("costB");
-		merchantOfferCostBField.setAccessible(true);
 	}
 
 	@Override
@@ -295,7 +283,6 @@ public final class CompatProviderImpl implements CompatProvider {
 			// Just in case:
 			merchantRecipeList = new MerchantOffers();
 		}
-		this.loosenOffers(merchantRecipeList);
 
 		// Send PacketPlayOutOpenWindowMerchant packet: window id, recipe list, merchant level (1:
 		// Novice, .., 5: Master), merchant total experience, is-regular-villager flag (false: hides
@@ -309,104 +296,6 @@ public final class CompatProviderImpl implements CompatProvider {
 				regularVillager,
 				canRestock
 		);
-	}
-
-	@Override
-	public void prepareMerchantOffers(Merchant merchant) {
-		net.minecraft.world.item.trading.Merchant nmsMerchant = this.asNmsMerchant(merchant);
-		if (nmsMerchant == null) return;
-		MerchantOffers offers = nmsMerchant.getOffers();
-		if (offers != null) {
-			this.loosenOffers(offers);
-		}
-	}
-
-	private net.minecraft.world.item.trading.Merchant asNmsMerchant(Merchant merchant) {
-		if (merchant instanceof Villager villager) {
-			return ((CraftVillager) villager).getHandle();
-		} else if (merchant instanceof AbstractVillager abstractVillager) {
-			return ((CraftAbstractVillager) abstractVillager).getHandle();
-		} else if (merchant instanceof CraftMerchant craftMerchant) {
-			return craftMerchant.getMerchant();
-		}
-		return null;
-	}
-
-	private void loosenOffers(MerchantOffers offers) {
-		for (MerchantOffer offer : offers) {
-			try {
-				this.copyDisplayNameToItemName(offer.getResult());
-				ItemCost costA = offer.getItemCostA();
-				ItemCost loosenedA = this.loosenDisplayComponents(costA);
-				if (loosenedA != costA) {
-					merchantOfferCostAField.set(offer, loosenedA);
-				}
-				@SuppressWarnings("unchecked")
-				Optional<ItemCost> costB = (Optional<ItemCost>) offer.getItemCostB();
-				if (costB.isPresent()) {
-					ItemCost loosenedB = this.loosenDisplayComponents(costB.get());
-					if (loosenedB != costB.get()) {
-						merchantOfferCostBField.set(offer, Optional.of(loosenedB));
-					}
-				}
-			} catch (IllegalAccessException e) {
-				Log.severe("Failed to loosen merchant ItemCost display components!", e);
-				return;
-			}
-		}
-	}
-
-	private ItemCost loosenDisplayComponents(ItemCost cost) {
-		net.minecraft.world.item.ItemStack display = cost.itemStack();
-		if (display == null || display.isEmpty()) return cost;
-		if (!this.isStableIdCustomItem(display)) return cost;
-
-		// Client reconstructs the cost icon from the predicate, not from the
-		// display stack. Keep a stable item_name so MMOItems/Nexo show their
-		// names instead of PAPER. Still drop custom_name + lore — those differ
-		// across copies (Adventure extras, rarity stamps) and break matching.
-		net.minecraft.world.item.ItemStack namedDisplay = display.copy();
-		this.copyDisplayNameToItemName(namedDisplay);
-
-		net.minecraft.world.item.ItemStack probe = namedDisplay.copy();
-		probe.remove(DataComponents.CUSTOM_NAME);
-		probe.remove(DataComponents.LORE);
-		DataComponentMap remaining = PatchedDataComponentMap.fromPatch(
-				DataComponentMap.EMPTY,
-				probe.getComponentsPatch()
-		);
-		DataComponentPredicate predicate = DataComponentPredicate.allOf(remaining);
-		if (predicate.equals(cost.components()) && namedDisplay.equals(display)) {
-			return cost;
-		}
-		return new ItemCost(cost.item(), cost.count(), predicate, namedDisplay);
-	}
-
-	private void copyDisplayNameToItemName(net.minecraft.world.item.ItemStack nms) {
-		if (nms == null || nms.isEmpty()) return;
-		ItemStack bukkit = CraftItemStack.asCraftMirror(nms);
-		ItemMeta meta = bukkit.getItemMeta();
-		if (meta == null || !meta.hasDisplayName()) return;
-		net.kyori.adventure.text.Component dn = meta.displayName();
-		if (dn == null) return;
-		String plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-				.plainText()
-				.serialize(dn)
-				.trim();
-		if (plain.isEmpty()) return;
-		if (meta.hasItemName() && plain.equals(meta.getItemName())) return;
-		meta.setItemName(plain);
-		bukkit.setItemMeta(meta);
-	}
-
-	private boolean isStableIdCustomItem(net.minecraft.world.item.ItemStack nmsItem) {
-		CustomData customData = nmsItem.get(DataComponents.CUSTOM_DATA);
-		if (customData == null) return false;
-		CompoundTag tag = customData.copyTag();
-		if (tag.contains("MMOITEMS_ITEM_ID")) return true;
-		if (!tag.contains("PublicBukkitValues")) return false;
-		CompoundTag pdc = tag.getCompound("PublicBukkitValues");
-		return pdc.contains("nexo:id") || pdc.contains("maximinions:minion_type");
 	}
 
 	@Override

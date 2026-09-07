@@ -58,13 +58,9 @@ public final class CustomItemsRefresher {
 		if (ItemUtils.isEmpty(item)) return item;
 
 		ItemStack minion = tryRefreshMaxiMinion(item);
-		if (minion != null) {
-			copyDisplayNameToItemName(minion);
-			return minion;
-		}
+		if (minion != null) return minion;
 
 		tryStampVanillaTier(item);
-		copyDisplayNameToItemName(item);
 		return item;
 	}
 
@@ -75,19 +71,12 @@ public final class CustomItemsRefresher {
 		if (ItemUtils.isEmpty(item)) return item;
 
 		ItemStack minion = tryRefreshMaxiMinion(item);
-		if (minion != null) {
-			copyDisplayNameToItemName(minion);
-			return minion;
-		}
+		if (minion != null) return minion;
 
 		ItemStack mmo = tryRefreshMmoItem(item);
-		if (mmo != null) {
-			copyDisplayNameToItemName(mmo);
-			return mmo;
-		}
+		if (mmo != null) return mmo;
 
 		tryStampVanillaTier(item);
-		copyDisplayNameToItemName(item);
 		return item;
 	}
 
@@ -245,26 +234,6 @@ public final class CustomItemsRefresher {
 			// Older MaxiItems without VanillaTierAPI.
 		} catch (Throwable ignored) {
 			// Soft no-op.
-		}
-	}
-
-	/**
-	 * 1.21 merchant packets show {@code item_name}, not {@code custom_name}.
-	 */
-	private static void copyDisplayNameToItemName(ItemStack item) {
-		if (ItemUtils.isEmpty(item)) return;
-		try {
-			ItemMeta meta = item.getItemMeta();
-			if (meta == null || !meta.hasDisplayName()) return;
-			String display = meta.getDisplayName();
-			if (display == null || display.isEmpty()) return;
-			String plain = org.bukkit.ChatColor.stripColor(display).trim();
-			if (plain.isEmpty()) return;
-			if (meta.hasItemName() && plain.equals(meta.getItemName())) return;
-			meta.setItemName(plain);
-			item.setItemMeta(meta);
-		} catch (Throwable ignored) {
-			// Spigot builds without item_name, or MiniMessage names with blank legacy.
 		}
 	}
 
