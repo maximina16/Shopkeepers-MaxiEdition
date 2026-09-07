@@ -30,6 +30,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.MerchantInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.view.builder.InventoryViewBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -334,6 +335,7 @@ public final class CompatProviderImpl implements CompatProvider {
 	private void loosenOffers(MerchantOffers offers) {
 		for (MerchantOffer offer : offers) {
 			try {
+				this.copyDisplayNameToItemName(offer.getResult());
 				ItemCost costA = offer.getItemCostA();
 				ItemCost loosenedA = this.loosenDisplayComponents(costA);
 				if (loosenedA != costA) {
@@ -359,17 +361,42 @@ public final class CompatProviderImpl implements CompatProvider {
 		if (display == null || display.isEmpty()) return cost;
 		if (!this.isStableIdCustomItem(display)) return cost;
 
-		net.minecraft.world.item.ItemStack probe = display.copy();
+		// Client reconstructs the cost icon from the predicate, not from the
+		// display stack. Keep a stable item_name so MMOItems/Nexo show their
+		// names instead of PAPER. Still drop custom_name + lore — those differ
+		// across copies (Adventure extras, rarity stamps) and break matching.
+		net.minecraft.world.item.ItemStack namedDisplay = display.copy();
+		this.copyDisplayNameToItemName(namedDisplay);
+
+		net.minecraft.world.item.ItemStack probe = namedDisplay.copy();
 		probe.remove(DataComponents.CUSTOM_NAME);
 		probe.remove(DataComponents.LORE);
-		probe.remove(DataComponents.ITEM_NAME);
 		DataComponentMap remaining = PatchedDataComponentMap.fromPatch(
 				DataComponentMap.EMPTY,
 				probe.getComponentsPatch()
 		);
 		DataComponentPredicate predicate = DataComponentPredicate.allOf(remaining);
-		if (predicate.equals(cost.components())) return cost;
-		return new ItemCost(cost.item(), cost.count(), predicate, display);
+		if (predicate.equals(cost.components()) && namedDisplay.equals(display)) {
+			return cost;
+		}
+		return new ItemCost(cost.item(), cost.count(), predicate, namedDisplay);
+	}
+
+	private void copyDisplayNameToItemName(net.minecraft.world.item.ItemStack nms) {
+		if (nms == null || nms.isEmpty()) return;
+		ItemStack bukkit = CraftItemStack.asCraftMirror(nms);
+		ItemMeta meta = bukkit.getItemMeta();
+		if (meta == null || !meta.hasDisplayName()) return;
+		net.kyori.adventure.text.Component dn = meta.displayName();
+		if (dn == null) return;
+		String plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+				.plainText()
+				.serialize(dn)
+				.trim();
+		if (plain.isEmpty()) return;
+		if (meta.hasItemName() && plain.equals(meta.getItemName())) return;
+		meta.setItemName(plain);
+		bukkit.setItemMeta(meta);
 	}
 
 	private boolean isStableIdCustomItem(net.minecraft.world.item.ItemStack nmsItem) {
