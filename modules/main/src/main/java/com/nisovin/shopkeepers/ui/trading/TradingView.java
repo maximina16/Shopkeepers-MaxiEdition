@@ -109,6 +109,9 @@ public class TradingView extends View {
 		Compat.getProvider().setInventoryViewTitle(menuBuilder, title);
 		var inventoryView = menuBuilder.merchant(merchant).build(player);
 		player.openInventory(inventoryView);
+		// First open packet still carries full component costs. Resend with
+		// identity-only matching so a broken item can fill the result slot.
+		Compat.getProvider().updateTrades(player);
 		return inventoryView;
 	}
 

@@ -69,6 +69,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.core.component.DataComponentExactPredicate;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -80,6 +82,8 @@ import net.minecraft.util.datafix.DataFixers;
 import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 
 public final class CompatProviderImpl implements CompatProvider {
@@ -308,9 +312,6 @@ public final class CompatProviderImpl implements CompatProvider {
 		}
 		MerchantInventory merchantInventory = (MerchantInventory) openInventory;
 
-		// Update the merchant inventory on the server (updates the result item, etc.):
-		merchantInventory.setItem(0, merchantInventory.getItem(0));
-
 		Merchant merchant = merchantInventory.getMerchant();
 		net.minecraft.world.item.trading.Merchant nmsMerchant;
 		boolean regularVillager = false;
@@ -337,6 +338,9 @@ public final class CompatProviderImpl implements CompatProvider {
 			// Just in case:
 			merchantRecipeList = new MerchantOffers();
 		}
+		this.relaxTradeCosts(merchantRecipeList);
+		// Refresh the result slot against the relaxed costs.
+		merchantInventory.setItem(0, merchantInventory.getItem(0));
 
 		// Send PacketPlayOutOpenWindowMerchant packet: window id, recipe list, merchant level (1:
 		// Novice, .., 5: Master), merchant total experience, is-regular-villager flag (false: hides
@@ -350,6 +354,47 @@ public final class CompatProviderImpl implements CompatProvider {
 				regularVillager,
 				canRestock
 		);
+	}
+
+	private static boolean hasTradeIdentity(DataComponentMap map) {
+		for (DataComponentType<?> type : TRADE_IDENTITY_COMPONENTS) {
+			if (map.get(type) != null) return true;
+		}
+		return false;
+	}
+
+	private static final DataComponentType<?>[] TRADE_IDENTITY_COMPONENTS = {
+			DataComponents.CUSTOM_NAME,
+			DataComponents.ITEM_NAME,
+			DataComponents.CUSTOM_MODEL_DATA,
+			DataComponents.ITEM_MODEL,
+			DataComponents.PROFILE,
+			DataComponents.DYED_COLOR,
+			DataComponents.TRIM
+	};
+
+	// The client draws the cost icon from these components. Keep name and model
+	// so the slot does not fall back to the material name, and ignore volatile
+	// NBT so a broken item with the same name still matches.
+	private void relaxTradeCosts(MerchantOffers offers) {
+		for (MerchantOffer offer : offers) {
+			offer.baseCostA = this.relaxTradeCost(offer.baseCostA);
+			if (offer.costB.isPresent()) {
+				offer.costB = java.util.Optional.of(this.relaxTradeCost(offer.costB.get()));
+			}
+		}
+	}
+
+	private ItemCost relaxTradeCost(ItemCost cost) {
+		net.minecraft.world.item.ItemStack shown = cost.itemStack();
+		if (shown.isEmpty()) return cost;
+		DataComponentMap map = PatchedDataComponentMap.fromPatch(
+				DataComponentMap.EMPTY,
+				shown.getComponentsPatch()
+		);
+		if (!hasTradeIdentity(map)) return cost;
+		var relaxed = DataComponentExactPredicate.someOf(map, TRADE_IDENTITY_COMPONENTS);
+		return new ItemCost(cost.item(), cost.count(), relaxed, shown);
 	}
 
 	@Override
